@@ -111,3 +111,39 @@ def list_pokemons_winner_than_seven():
     status=200,
     mimetype="application/json"
   )
+
+@pokemons.route("/list_pokemon_type_fire_alphabetically", methods = ["GET"])
+def list_pokemon_type_fire_alphabetically():
+  pokemons_query = mongo_client.pokemons.aggregate([
+    {
+        '$match': {
+            'Type 1': 'Fire', 
+            'Type 2': None
+        }
+    }, {
+        '$sort': {
+            'Name': 1
+        }
+    }, {
+        '$lookup': {
+            'from': 'combats', 
+            'localField': '#', 
+            'foreignField': 'Winner', 
+            'as': 'winners'
+        }
+    }, {
+        '$project': {
+            'Name': 1, 
+            'Type 1': 1, 
+            'winners': {
+                '$size': '$winners'
+            }
+        }
+    }
+  ])
+  
+  return Response(
+    response=json_util.dumps({'records' : pokemons_query}),
+    status=200,
+    mimetype="application/json"
+  )
