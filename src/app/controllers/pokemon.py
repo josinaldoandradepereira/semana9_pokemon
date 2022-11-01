@@ -44,3 +44,70 @@ def list_pokemons_generation_one():
     status=200,
     mimetype="application/json"
   )
+
+@pokemons.route("/list_pokemons_winner_than_seven", methods = ["GET"])
+def list_pokemons_winner_than_seven():
+  pokemons_query = mongo_client.pokemons.aggregate([
+    {
+        '$lookup': {
+            'from': 'combats', 
+            'as': 'winners', 
+            'let': {
+                'id_pokemon': '$#'
+            }, 
+            'pipeline': [
+                {
+                    '$match': {
+                        '$expr': {
+                            '$and': [
+                                {
+                                    '$eq': [
+                                        '$Winner', '$$id_pokemon'
+                                    ]
+                                }, {
+                                    '$or': [
+                                        {
+                                            '$eq': [
+                                                '$First_pokemon', 7
+                                            ]
+                                        }, {
+                                            '$eq': [
+                                                '$Second_pokemon', 7
+                                            ]
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    }
+                }
+            ]
+        }
+    }, {
+        '$project': {
+            '#': 1, 
+            'Name': 1, 
+            'winners': {
+                '$size': '$winners'
+            }
+        }
+    }, {
+        '$match': {
+            '#': {
+                '$ne': 7
+            }, 
+            'winners': {
+                '$gte': 1
+            }
+        }
+    }, {
+        '$sort': {
+            'winners': -1
+        }
+    }
+  ])
+  return Response(
+    response=json_util.dumps({'records' : pokemons_query}),
+    status=200,
+    mimetype="application/json"
+  )
